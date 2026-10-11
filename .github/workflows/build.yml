@@ -1,0 +1,42 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Compilar
+        run: gradle assembleDebug --no-daemon
+
+      - name: Renomear APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk RokuPad.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RokuPad
+          path: RokuPad.apk
+
+      - name: Publicar na página de Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk -y --cleanup-tag || true
+          gh release create apk RokuPad.apk -t "RokuPad (APK)" -n "Baixe o RokuPad.apk no celular Android e instale."
